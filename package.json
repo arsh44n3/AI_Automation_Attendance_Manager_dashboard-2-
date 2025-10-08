@@ -6,7 +6,8 @@
     "@supabase/supabase-js": "2.58.0",
     "lucide-react": "^0.545.0",
     "react": "18.1.0",
-    "react-dom": "18.1.0"
+    "react-dom": "18.1.0",
+    "react-hot-toast": "^2.6.0"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -16,5 +17,17 @@
   },
   "devDependencies": {
     "react-scripts": "latest"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }

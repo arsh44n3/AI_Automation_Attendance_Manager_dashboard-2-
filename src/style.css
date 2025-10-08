@@ -3,3 +3,9 @@ p {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
     Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
+/* Ensure toast is always visible */
+[data-sonner-toaster],
+[data-sonner-toast],
+[data-sonner-toast] * {
+  z-index: 9999 !important;
+}

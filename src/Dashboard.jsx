@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import { Users, CheckCircle, XCircle, ClipboardList } from "lucide-react";
-import { supabase } from './supabase';
-import WebhookButton from './WebhookButton';
-
+import { supabase } from "./supabase";
+import WebhookButton from "./WebhookButton";
+import toast from "react-hot-toast";
 
 const WEBHOOK_URL =
-  'https://n8n.srv897055.hstgr.cloud/webhook/724d471e-88a8-407e-8507-040b0fe0251e'; // replace with your webhook
+  "https://n8n.srv897055.hstgr.cloud/webhook/724d471e-88a8-407e-8507-040b0fe0251e"; // replace with your webhook
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -17,47 +17,46 @@ export default function Dashboard() {
   });
   const [attendance, setAttendance] = useState([]);
 
-  
-  // filters for table only
   const [filters, setFilters] = useState({
-    date: new Date().toISOString().split('T')[0],
-    name: '',
-    department: '',
-    skill: '',
+    date: new Date().toISOString().split("T")[0],
+    name: "",
+    department: "",
+    skill: "",
   });
 
   const [departments, setDepartments] = useState([]);
   const [skills, setSkills] = useState([]);
 
-  // Fetch stats for cards
+  // fetch cards
   const fetchStats = async () => {
     const { count: total } = await supabase
-      .from('employees')
-      .select('*', { count: 'exact', head: true });
+      .from("employees")
+      .select("*", { count: "exact", head: true });
 
-    const { data: today } = await supabase
-      .from('attendance')
-      .select('status')
-      .eq('date', new Date().toISOString().split('T')[0]); // always today
+    const { data: attendance } = await supabase
+      .from("attendance")
+      .select("status")
+      .eq("date", filters.date);
 
-    const present = today?.filter((a) => a.status === 'present').length || 0;
-    const absent = today?.filter((a) => a.status === 'absent').length || 0;
-    const late = today?.filter((a) => a.status === 'late').length || 0;
+    const present =
+      attendance?.filter((a) => a.status === "present").length || 0;
+    const absent = attendance?.filter((a) => a.status === "absent").length || 0;
 
     const { data: req } = await supabase
-      .from('skill_requirements')
-      .select('required_count')
-      .eq('date', new Date().toISOString().split('T')[0]);
+      .from("skill_requirements")
+      .select("required_count")
+      .eq("date", filters.date);
 
-    const required = req?.reduce((sum, r) => sum + r.required_count, 0) || 0;
+    const required =
+      req?.reduce((sum, r) => sum + r.required_count, 0) || 0;
 
-    setStats({ total: total || 0, present, absent, late, required });
+    setStats({ total: total || 0, present, absent, required });
   };
 
-  // Fetch attendance table
+  // fetch attendance table
   const fetchAttendance = async () => {
     let query = supabase
-      .from('attendance')
+      .from("attendance")
       .select(
         `
         date,
@@ -72,39 +71,40 @@ export default function Dashboard() {
         )
       `
       )
-      .eq('date', filters.date);
+      .eq("date", filters.date);
 
     if (filters.name) {
-      query = query.ilike('employees.full_name', `%${filters.name}%`);
+      query = query.ilike("employees.full_name", `%${filters.name}%`);
     }
     if (filters.department) {
-      query = query.eq('employees.departments.name', filters.department);
+      query = query.eq("employees.departments.name", filters.department);
     }
     if (filters.skill) {
-      query = query.eq('employees.employee_skills.skills.name', filters.skill);
+      query = query.eq("employees.employee_skills.skills.name", filters.skill);
     }
 
     const { data } = await query;
     setAttendance(data || []);
   };
 
-  // Fetch dropdown data
   const fetchFilters = async () => {
-    const { data: dept } = await supabase.from('departments').select('name');
+    const { data: dept } = await supabase.from("departments").select("name");
     setDepartments(dept || []);
-    const { data: skl } = await supabase.from('skills').select('name');
+    const { data: skl } = await supabase.from("skills").select("name");
     setSkills(skl || []);
   };
 
   const triggerWebhook = async () => {
-    await fetch(WEBHOOK_URL, { method: 'POST' });
-    alert('Webhook triggered!');
+    await fetch(WEBHOOK_URL, { method: "POST" });
+    toast.success("Telegram notification sent ✅");
+    console.log("✅ Toast triggered");
+
   };
 
   useEffect(() => {
     fetchStats();
     fetchFilters();
-  }, []);
+  }, [filters.date]);
 
   useEffect(() => {
     fetchAttendance();
@@ -114,43 +114,62 @@ export default function Dashboard() {
     <div className="p-8 space-y-8 max-w-7xl mx-auto">
       {/* Heading */}
       <header className="bg-white shadow-sm sticky top-0 z-10">
-  <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-    <h1 className="text-xl font-bold text-gray-800">Job Buddy Attendance</h1>
-    <span className="text-sm text-gray-500">Arshaan</span>
-  </div>
-</header>
-
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <h1 className="text-xl font-bold text-gray-800">
+            Job Buddy Attendance
+          </h1>
+          <span className="text-sm text-gray-500">Arshaan</span>
+        </div>
+      </header>
 
       {/* Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-  {[
-    { label: "Total Employees", value: stats.total, color: "bg-blue-100 text-blue-700", icon: Users },
-    { label: "Present", value: stats.present, color: "bg-green-100 text-green-700", icon: CheckCircle },
-    { label: "Absent", value: stats.absent, color: "bg-red-100 text-red-700", icon: XCircle },
-    { label: "Required", value: stats.required, color: "bg-purple-100 text-purple-700", icon: ClipboardList },
-  ].map((c) => {
-    const Icon = c.icon;
-    return (
-      <div
-        key={c.label}
-        className={`flex flex-col justify-center items-center rounded-2xl 
-                    shadow-md p-8 border border-gray-200 ${c.color} 
-                    transition transform hover:-translate-y-1 hover:shadow-lg`}
-      >
-        <Icon className="w-8 h-8 mb-3 opacity-80" />
-        <p className="text-base font-medium">{c.label}</p>
-        <p className="text-4xl font-bold mt-1">{c.value}</p>
+        {[
+          {
+            label: "Total Employees",
+            value: stats.total,
+            color: "bg-blue-100 text-blue-700",
+            icon: Users,
+          },
+          {
+            label: "Present",
+            value: stats.present,
+            color: "bg-green-100 text-green-700",
+            icon: CheckCircle,
+          },
+          {
+            label: "Absent",
+            value: stats.absent,
+            color: "bg-red-100 text-red-700",
+            icon: XCircle,
+          },
+          {
+            label: "Required",
+            value: stats.required,
+            color: "bg-purple-100 text-purple-700",
+            icon: ClipboardList,
+          },
+        ].map((c) => {
+          const Icon = c.icon;
+          return (
+            <div
+              key={c.label}
+              className={`flex flex-col justify-center items-center rounded-2xl 
+                        shadow-md p-8 border border-gray-200 ${c.color} 
+                        transition transform hover:-translate-y-1 hover:shadow-lg`}
+            >
+              <Icon className="w-8 h-8 mb-3 opacity-80" />
+              <p className="text-base font-medium">{c.label}</p>
+              <p className="text-4xl font-bold mt-1">{c.value}</p>
+            </div>
+          );
+        })}
       </div>
-    );
-  })}
-</div>
 
-
-      {/*WebhookButton*/}
+      {/* Webhook Button */}
       <WebhookButton onClick={triggerWebhook} />
-      
 
-      {/* Table Filters */}
+      {/* Filters */}
       <div className="bg-white shadow p-4 rounded-lg flex flex-wrap gap-4">
         <input
           type="date"
@@ -219,15 +238,15 @@ export default function Dashboard() {
                   {row.employees?.departments?.name}
                 </td>
                 <td className="p-3 border">
-                  {row.employees?.employee_skills?.[0]?.skills?.name || '-'}
+                  {row.employees?.employee_skills?.[0]?.skills?.name || "-"}
                 </td>
                 <td
                   className={`p-3 border capitalize font-medium ${
-                    row.status === 'present'
-                      ? 'text-green-600'
-                      : row.status === 'absent'
-                      ? 'text-red-600'
-                      : 'text-yellow-600'
+                    row.status === "present"
+                      ? "text-green-600"
+                      : row.status === "absent"
+                      ? "text-red-600"
+                      : "text-yellow-600"
                   }`}
                 >
                   {row.status}
